@@ -1,14 +1,15 @@
 {
   "name": "naukri-job-scraper",
   "version": "1.0.0",
-  "description": "Scrapes Naukri.com job listings for Delivery Manager, Scrum Master, Project Manager roles",
-  "main": "main.js",
   "type": "module",
+  "description": "Naukri Job Scraper",
+  "main": "main.js",
   "scripts": {
     "start": "node main.js"
   },
   "dependencies": {
     "apify": "^3.0.0",
-    "crawlee": "^3.0.0"
+    "crawlee": "^3.0.0",
+    "playwright": "^1.40.0"
   }
 }
