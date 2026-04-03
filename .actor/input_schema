@@ -1,0 +1,44 @@
+{
+  "title": "Naukri Job Scraper Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "keyword": {
+      "title": "Job keyword",
+      "type": "string",
+      "description": "Job title to search. E.g. 'Delivery Manager Scrum Master'",
+      "default": "Delivery Manager",
+      "editor": "textfield"
+    },
+    "location": {
+      "title": "Location",
+      "type": "string",
+      "description": "City to search in",
+      "default": "Bengaluru",
+      "editor": "textfield"
+    },
+    "experience": {
+      "title": "Years of experience",
+      "type": "string",
+      "description": "Minimum years of experience",
+      "default": "10",
+      "editor": "textfield"
+    },
+    "maxItems": {
+      "title": "Max results",
+      "type": "integer",
+      "description": "Maximum number of jobs to return (keep low to save credits)",
+      "default": 10,
+      "minimum": 1,
+      "maximum": 50,
+      "editor": "number"
+    },
+    "freshness": {
+      "title": "Job freshness (days)",
+      "type": "string",
+      "description": "Only return jobs posted in last N days. 1 = last 24 hrs",
+      "default": "1",
+      "editor": "textfield"
+    }
+  }
+}
