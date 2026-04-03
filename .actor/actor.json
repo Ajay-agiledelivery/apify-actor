@@ -4,6 +4,5 @@
   "title": "Naukri Job Scraper — Delivery Manager / Scrum Master",
   "description": "Scrapes Naukri.com for Delivery Manager, Scrum Master and Project Manager jobs in Bengaluru. Returns title, company, location, salary, experience, posted date and job URL.",
   "version": "1.0",
-  "input": ".actor/input_schema.json",
-  "dockerfile": "Dockerfile"
+  "input": "./input_schema.json"
 }
