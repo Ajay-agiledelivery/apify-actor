@@ -23,10 +23,16 @@ console.log('Search URL:', searchUrl);
 
 const results = [];
 
+const proxyConfiguration = await Actor.createProxyConfiguration({
+    useApifyProxy: true,
+    apifyProxyGroups: ['RESIDENTIAL'],
+});
+
 const crawler = new CheerioCrawler({
     maxRequestsPerCrawl: 3,
     requestHandlerTimeoutSecs: 60,
     additionalMimeTypes: ['text/html'],
+    proxyConfiguration,
     preNavigationHooks: [
         async (crawlingContext) => {
             crawlingContext.request.headers = {
