@@ -1,0 +1,11 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "Naukri Job Scraper Output",
+  "properties": {
+    "results": {
+      "type": "string",
+      "title": "Job Results",
+      "template": "{{links.apiDefaultDatasetUrl}}/items"
+    }
+  }
+}
