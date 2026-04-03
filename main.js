@@ -17,7 +17,6 @@ console.log(`Scraping Naukri for: ${keyword} in ${location}`);
 const keywords = keyword.split(' ').join('-').toLowerCase();
 const locationSlug = location.toLowerCase().replace(/\s+/g, '-');
 
-// Build Naukri search URL
 const searchUrl = `https://www.naukri.com/${keywords}-jobs-in-${locationSlug}?experience=${experience}&jobAge=${freshness}`;
 
 console.log('Search URL:', searchUrl);
@@ -28,18 +27,21 @@ const crawler = new CheerioCrawler({
     maxRequestsPerCrawl: 3,
     requestHandlerTimeoutSecs: 60,
     additionalMimeTypes: ['text/html'],
-    headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'appid': '109',
-        'systemid': '109',
-    },
+    preNavigationHooks: [
+        async (crawlingContext) => {
+            crawlingContext.request.headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'appid': '109',
+                'systemid': '109',
+            };
+        },
+    ],
     async requestHandler({ $, request }) {
         console.log(`Processing: ${request.url}`);
 
-        // Try to get JSON data embedded in page
         let jobsFromScript = [];
         $('script').each((i, el) => {
             const text = $(el).html() || '';
@@ -55,7 +57,6 @@ const crawler = new CheerioCrawler({
             }
         });
 
-        // Fallback: scrape from HTML elements
         if (jobsFromScript.length === 0) {
             $('.srp-jobtuple-wrapper, .jobTuple, article.jobTuple').each((i, el) => {
                 if (results.length >= maxItems) return false;
@@ -110,7 +111,6 @@ const crawler = new CheerioCrawler({
 
 await crawler.run([searchUrl]);
 
-// Also try Naukri API directly (most reliable)
 if (results.length === 0) {
     console.log('HTML scraping returned 0 results, trying Naukri API...');
     try {
