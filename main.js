@@ -29,11 +29,10 @@ const crawler = new PlaywrightCrawler({
 
     async requestHandler({ page, request }) {
 
-        // ─── LISTING PAGE ───────────────────────────────────────
+        // ─── LISTING PAGE ──────────────────────────────────────
         if (request.label === 'LIST') {
             console.log('📋 Scraping listing page...');
 
-            // Wait for job cards
             await page.waitForSelector('.srp-jobtuple-wrapper', { timeout: 20000 })
                 .catch(() => console.log('⚠️ Selector timeout - trying anyway'));
 
@@ -62,7 +61,6 @@ const crawler = new PlaywrightCrawler({
 
             console.log(`📌 Found ${jobLinks.length} jobs on listing page`);
 
-            // Queue each job detail page
             for (const job of jobLinks.slice(0, maxItems)) {
                 if (job.jobUrl) {
                     await crawler.addRequests([{
@@ -72,56 +70,100 @@ const crawler = new PlaywrightCrawler({
                     }]);
                 }
             }
-        }
+        }  // ← closes LIST block
 
-        // ─── DETAIL PAGE ────────────────────────────────────────
+        // ─── DETAIL PAGE ───────────────────────────────────────
         if (request.label === 'DETAIL') {
             const baseJob = request.userData.job;
             console.log(`🔎 Scraping detail: ${baseJob.title}`);
 
-            // Wait for description
-            await page.waitForSelector('.job-desc, .dang-inner-html', { timeout: 15000 })
-                .catch(() => null);
+            await page.waitForTimeout(3000);
+
+            // DEBUG — find correct selectors
+            const allClasses = await page.evaluate(() => {
+                return [...document.querySelectorAll('[class]')]
+                    .map(el => el.className)
+                    .filter(c =>
+                        c.includes('desc') ||
+                        c.includes('applicant') ||
+                        c.includes('skill')
+                    )
+                    .slice(0, 20);
+            });
+            console.log('🔍 Found classes:', JSON.stringify(allClasses));
 
             const details = await page.evaluate(() => {
 
                 // ── Job Description ──
-                const descEl =
-                    document.querySelector('.job-desc') ||
-                    document.querySelector('.dang-inner-html') ||
-                    document.querySelector('[class*="job-description"]') ||
-                    document.querySelector('[class*="jobDescription"]');
+                const descSelectors = [
+                    '.dang-inner-html',
+                    '.job-desc',
+                    '[class*="job-desc"]',
+                    '[class*="jobDesc"]',
+                    '[class*="description"]',
+                    'section.styles_job-desc-container__txpYf',
+                    '#job_description',
+                    '.details-content'
+                ];
+                let jobDescription = 'N/A';
+                for (const sel of descSelectors) {
+                    const el = document.querySelector(sel);
+                    if (el && el.innerText.trim().length > 50) {
+                        jobDescription = el.innerText.trim().substring(0, 3000);
+                        break;
+                    }
+                }
 
                 // ── Applicants Count ──
-                const applicantsEl =
-                    document.querySelector('[class*="applicants"]') ||
-                    document.querySelector('.stat-item') ||
-                    document.querySelector('[class*="application"]') ||
-                    document.querySelector('.loco-details');
+                const applicantSelectors = [
+                    '[class*="applicant"]',
+                    '[class*="Applicant"]',
+                    '.stat-item',
+                    '[class*="application-count"]',
+                    '[class*="apply-count"]',
+                    '.loco-details span',
+                    '[class*="hired"]'
+                ];
+                let applicants = 'N/A';
+                for (const sel of applicantSelectors) {
+                    const el = document.querySelector(sel);
+                    if (el && el.innerText.trim()) {
+                        applicants = el.innerText.trim();
+                        break;
+                    }
+                }
 
-                // ── Key Skills / Tags ──
-                const skillEls = document.querySelectorAll(
-                    '.tag-li, .chip-btn, [class*="key-skill"], [class*="keySkill"], .skills-item'
-                );
-                const skills = Array.from(skillEls)
-                    .map(el => el.innerText.trim())
-                    .filter(Boolean)
-                    .join(', ');
+                // ── Key Skills ──
+                const skillSelectors = [
+                    '.key-skill',
+                    '.chip-btn',
+                    '[class*="keySkill"] a',
+                    '[class*="key-skill"] a',
+                    '.skills-item',
+                    '[class*="tag-li"]'
+                ];
+                let tags = 'N/A';
+                for (const sel of skillSelectors) {
+                    const els = document.querySelectorAll(sel);
+                    if (els.length > 0) {
+                        tags = Array.from(els)
+                            .map(el => el.innerText.trim())
+                            .filter(t => t.length > 1 && t.length < 50)
+                            .join(', ');
+                        if (tags.length > 5) break;
+                    }
+                }
 
                 // ── Openings ──
-                const openingsEl = document.querySelector('[class*="opening"]');
+                const openingsEl =
+                    document.querySelector('[class*="opening"]') ||
+                    document.querySelector('[class*="vacancy"]');
 
                 return {
-                    jobDescription: descEl
-                        ? descEl.innerText.trim().substring(0, 3000)
-                        : 'N/A',
-                    applicants: applicantsEl
-                        ? applicantsEl.innerText.trim()
-                        : 'N/A',
-                    tags: skills || 'N/A',
-                    openings: openingsEl
-                        ? openingsEl.innerText.trim()
-                        : 'N/A'
+                    jobDescription,
+                    applicants,
+                    tags,
+                    openings: openingsEl ? openingsEl.innerText.trim() : 'N/A'
                 };
             });
 
@@ -136,16 +178,19 @@ const crawler = new PlaywrightCrawler({
 
             results.push(fullJob);
             await Actor.pushData(fullJob);
-            console.log(`✅ Done: ${baseJob.title} @ ${baseJob.company} | Applicants: ${details.applicants}`);
-        }
-    },
+            console.log(`✅ Done: ${baseJob.title} | Applicants: ${details.applicants}`);
+
+        }  // ← closes DETAIL block
+
+    },  // ← closes requestHandler
 
     failedRequestHandler({ request, error }) {
         console.log(`❌ Failed: ${request.url} — ${error.message}`);
     }
-});
 
-// Start crawl
+});  // ← closes PlaywrightCrawler
+
+// ─── START CRAWL ───────────────────────────────────────────
 await crawler.addRequests([{ url: searchUrl, label: 'LIST' }]);
 await crawler.run();
 
