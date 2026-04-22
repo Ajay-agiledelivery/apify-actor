@@ -1,11 +1,9 @@
 {
   "actorSpecification": 1,
   "name": "naukri-job-scraper",
-  "title": "Naukri Advanced Job Scraper — Fresh Jobs, Any Role, Any City",
-  "description": "Scrape fresh job listings from Naukri.com for any role across any Indian city. Filter by last 24 hours, 3 days, or 7 days.",
+  "title": "Naukri Job Scraper — Search Any Role, Any City in India",
+  "description": "Scrapes Naukri.com for any job role across any Indian city.",
   "version": "1.0",
   "input": "./input_schema.json",
-  "output": "./output_schema.json",
-  "dockerfile": "../Dockerfile",
-  "readme": "../README.md"
+  "output": "./output_schema.json"
 }
