@@ -1,54 +1,43 @@
 {
-  "title": "Naukri Advanced Job Scraper Input",
+  "title": "Naukri Job Scraper Input",
   "type": "object",
   "schemaVersion": 1,
-  "required": ["keyword"],
   "properties": {
     "keyword": {
-      "title": "Job Title / Keyword",
+      "title": "Job keyword",
       "type": "string",
-      "description": "Job title to search. Example: Delivery Manager, Scrum Master",
+      "description": "Job title to search. E.g. 'Delivery Manager Scrum Master'",
       "default": "Delivery Manager",
       "editor": "textfield"
     },
     "location": {
-      "title": "City / Location",
+      "title": "Location",
       "type": "string",
-      "description": "Indian city. Example: Bengaluru, Hyderabad, Mumbai",
+      "description": "City to search in",
       "default": "Bengaluru",
       "editor": "textfield"
     },
     "experience": {
-      "title": "Minimum Years of Experience",
+      "title": "Years of experience",
       "type": "string",
-      "description": "Example: 5, 8, 10, 15",
+      "description": "Minimum years of experience",
       "default": "10",
       "editor": "textfield"
     },
-    "freshness": {
-      "title": "Job Freshness (days)",
-      "type": "string",
-      "description": "1 = last 24 hours, 3 = last 3 days, 7 = last week",
-      "default": "1",
-      "editor": "textfield"
-    },
     "maxItems": {
-      "title": "Max Results",
+      "title": "Max results",
       "type": "integer",
-      "description": "Maximum jobs to return",
+      "description": "Maximum number of jobs to return (keep low to save credits)",
       "default": 10,
       "minimum": 1,
-      "maximum": 100,
+      "maximum": 50,
       "editor": "number"
     },
-    "maxPages": {
-      "title": "Max Pages to Crawl",
-      "type": "integer",
-      "description": "1 page = ~20 jobs. Set 2 or 3 for more results.",
-      "default": 2,
-      "minimum": 1,
-      "maximum": 5,
-      "editor": "number"
+    "freshness": {
+      "title": "Job freshness (days)",
+      "type": "string",
+      "description": "Only return jobs posted in last N days. 1 = last 24 hrs",
+      "default": "1",
+      "editor": "textfield"
     }
   }
-}
