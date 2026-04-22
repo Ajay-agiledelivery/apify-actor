@@ -1,44 +1,54 @@
 {
-  "title": "Naukri Job Scraper Input",
+  "title": "Naukri Advanced Job Scraper Input",
   "type": "object",
   "schemaVersion": 1,
+  "required": ["keyword"],
   "properties": {
     "keyword": {
-      "title": "Job keyword",
+      "title": "Job Title / Keyword",
       "type": "string",
-      "description": "Job title to search. E.g. 'Delivery Manager Scrum Master'",
+      "description": "Job title to search on Naukri. Examples: 'Delivery Manager', 'Scrum Master', 'Project Manager', 'Software Engineer'",
       "default": "Delivery Manager",
       "editor": "textfield"
     },
     "location": {
-      "title": "Location",
+      "title": "City / Location",
       "type": "string",
-      "description": "City to search in",
+      "description": "Indian city to search jobs in. Examples: Bengaluru, Hyderabad, Mumbai, Chennai, Pune, Delhi, Remote",
       "default": "Bengaluru",
       "editor": "textfield"
     },
     "experience": {
-      "title": "Years of experience",
+      "title": "Minimum Years of Experience",
       "type": "string",
-      "description": "Minimum years of experience",
+      "description": "Filter jobs requiring at least this many years of experience. Examples: 5, 8, 10, 15",
       "default": "10",
       "editor": "textfield"
     },
-    "maxItems": {
-      "title": "Max results",
-      "type": "integer",
-      "description": "Maximum number of jobs to return (keep low to save credits)",
-      "default": 10,
-      "minimum": 1,
-      "maximum": 50,
-      "editor": "number"
-    },
     "freshness": {
-      "title": "Job freshness (days)",
+      "title": "Job Freshness (days)",
       "type": "string",
-      "description": "Only return jobs posted in last N days. 1 = last 24 hrs",
+      "description": "Only return jobs posted within last N days. Use 1 for last 24 hours (recommended for fresh results), 3 for last 3 days, 7 for last week.",
       "default": "1",
       "editor": "textfield"
+    },
+    "maxItems": {
+      "title": "Max Results",
+      "type": "integer",
+      "description": "Maximum number of job listings to scrape and return. Keep low (10–20) to save compute credits.",
+      "default": 10,
+      "minimum": 1,
+      "maximum": 100,
+      "editor": "number"
+    },
+    "maxPages": {
+      "title": "Max Pages to Crawl",
+      "type": "integer",
+      "description": "How many Naukri search result pages to crawl. 1 page = ~20 jobs. Set to 2 or 3 for more results.",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 5,
+      "editor": "number"
     }
   }
 }
