@@ -2,13 +2,14 @@
   "name": "naukri-job-scraper",
   "version": "1.0.0",
   "type": "module",
-  "description": "Naukri Advanced Job Scraper — Fresh jobs, any role, any city in India",
+  "description": "Naukri Advanced Job Scraper",
   "main": "main.js",
   "scripts": {
     "start": "node main.js"
   },
   "dependencies": {
     "apify": "^3.2.2",
-    "crawlee": "^3.9.0"
+    "crawlee": "^3.9.0",
+    "playwright": "^1.40.0"
   }
 }
