@@ -2,28 +2,21 @@
   "actorOutputSchemaVersion": 1,
   "title": "Naukri Job Results",
   "description": "Fresh job listings scraped from Naukri.com",
-  "views": {
-    "overview": {
-      "title": "Jobs Table",
-      "transformation": {
-        "fields": ["title","company","location","experience","salary","postedDate","tags","openings","applicants","jobUrl","scrapedAt"]
-      },
-      "display": {
-        "component": "table",
-        "properties": {
-          "title":      { "label": "Job Title",   "format": "text" },
-          "company":    { "label": "Company",     "format": "text" },
-          "location":   { "label": "Location",    "format": "text" },
-          "experience": { "label": "Experience",  "format": "text" },
-          "salary":     { "label": "Salary",      "format": "text" },
-          "postedDate": { "label": "Posted",      "format": "text" },
-          "tags":       { "label": "Skills",      "format": "text" },
-          "openings":   { "label": "Openings",    "format": "text" },
-          "applicants": { "label": "Applicants",  "format": "text" },
-          "jobUrl":     { "label": "Apply Link",  "format": "link" },
-          "scrapedAt":  { "label": "Scraped At",  "format": "text" }
-        }
-      }
-    }
+  "properties": {
+    "title":          { "type": "string", "title": "Job Title" },
+    "company":        { "type": "string", "title": "Company" },
+    "location":       { "type": "string", "title": "Location" },
+    "experience":     { "type": "string", "title": "Experience" },
+    "salary":         { "type": "string", "title": "Salary" },
+    "postedDate":     { "type": "string", "title": "Posted Date" },
+    "tags":           { "type": "string", "title": "Skills" },
+    "openings":       { "type": "string", "title": "Openings" },
+    "applicants":     { "type": "string", "title": "Applicants" },
+    "roleCategory":   { "type": "string", "title": "Role Category" },
+    "industry":       { "type": "string", "title": "Industry" },
+    "jobDescription": { "type": "string", "title": "Job Description" },
+    "jobUrl":         { "type": "string", "title": "Apply Link" },
+    "source":         { "type": "string", "title": "Source" },
+    "scrapedAt":      { "type": "string", "title": "Scraped At" }
   }
 }
