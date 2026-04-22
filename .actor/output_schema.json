@@ -1,11 +1,49 @@
 {
   "actorOutputSchemaVersion": 1,
-  "title": "Naukri Job Scraper Output",
-  "properties": {
-    "results": {
-      "type": "string",
-      "title": "Job Results",
-      "template": "{{links.apiDefaultDatasetUrl}}/items"
+  "title": "Naukri Job Results",
+  "description": "Fresh job listings scraped from Naukri.com",
+  "views": {
+    "overview": {
+      "title": "Jobs Table",
+      "transformation": {
+        "fields": [
+          "title",
+          "company",
+          "location",
+          "experience",
+          "salary",
+          "postedDate",
+          "tags",
+          "openings",
+          "applicants",
+          "roleCategory",
+          "industry",
+          "jobDescription",
+          "jobUrl",
+          "source",
+          "scrapedAt"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "title":          { "label": "Job Title",      "format": "text" },
+          "company":        { "label": "Company",        "format": "text" },
+          "location":       { "label": "Location",       "format": "text" },
+          "experience":     { "label": "Experience",     "format": "text" },
+          "salary":         { "label": "Salary",         "format": "text" },
+          "postedDate":     { "label": "Posted",         "format": "text" },
+          "tags":           { "label": "Skills",         "format": "text" },
+          "openings":       { "label": "Openings",       "format": "text" },
+          "applicants":     { "label": "Applicants",     "format": "text" },
+          "roleCategory":   { "label": "Role Category",  "format": "text" },
+          "industry":       { "label": "Industry",       "format": "text" },
+          "jobDescription": { "label": "Description",    "format": "text" },
+          "jobUrl":         { "label": "Apply Link",     "format": "link" },
+          "source":         { "label": "Source",         "format": "text" },
+          "scrapedAt":      { "label": "Scraped At",     "format": "text" }
+        }
+      }
     }
   }
 }
