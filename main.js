@@ -9,18 +9,16 @@ const {
     location   = 'Bengaluru',
     experience = '10',
     maxItems   = 20,
-    freshness  = '1',          // FIX 1: default '1' = last 24 hrs
-    maxPages   = 3,            // NEW: how many listing pages to paginate
+    freshness  = '1',
+    maxPages   = 3,
 } = input;
 
-const results   = [];
-const seenUrls  = new Set(); // FIX 2: prevent duplicate job scraping
+const results  = [];
+const seenUrls = new Set();
 
-// FIX 3: Build URL correctly — freshness MUST be in the URL, not appended after
 const buildSearchUrl = (keyword, location, experience, freshness, page = 1) => {
-    const role = keyword.toLowerCase().replace(/ /g, '-');
-    const city = location.toLowerCase().replace(/ /g, '-');
-    // Naukri pagination uses page number at end: -jobs-in-city-1, -jobs-in-city-2
+    const role    = keyword.toLowerCase().replace(/ /g, '-');
+    const city    = location.toLowerCase().replace(/ /g, '-');
     const pageStr = page > 1 ? `-${page}` : '';
     return `https://www.naukri.com/${role}-jobs-in-${city}${pageStr}?experience=${experience}&freshness=${freshness}`;
 };
@@ -32,84 +30,152 @@ const crawler = new PlaywrightCrawler({
     launchContext: {
         launchOptions: {
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-blink-features=AutomationControlled',
+                '--disable-web-security',
+                '--disable-features=IsolateOrigins,site-per-process',
+            ],
         },
     },
-    maxConcurrency: 2,           // FIX 4: was missing — prevents rate limiting
-    maxRequestRetries: 3,        // FIX 5: increased from 2 to 3
-    requestHandlerTimeoutSecs: 90,
+    maxConcurrency: 1,
+    maxRequestRetries: 3,
+    requestHandlerTimeoutSecs: 120,
 
-    // FIX 6: Block images/fonts to speed up page loads significantly
     preNavigationHooks: [
-        async ({ blockRequests }) => {
-            await blockRequests({
-                extraUrlPatterns: ['.png', '.jpg', '.gif', '.woff', '.woff2', '.svg', '.ico'],
+        async ({ page }) => {
+            await page.setExtraHTTPHeaders({
+                'Accept-Language': 'en-IN,en;q=0.9',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+            });
+            await page.addInitScript(() => {
+                Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+                Object.defineProperty(navigator, 'languages', { get: () => ['en-IN', 'en'] });
+                Object.defineProperty(navigator, 'platform',  { get: () => 'Win32' });
+                window.chrome = { runtime: {} };
             });
         },
     ],
 
     async requestHandler({ page, request }) {
 
-        // ─── LISTING PAGE ──────────────────────────────────────────────────────
+        // ── LISTING PAGE ──────────────────────────────────────────────────────
         if (request.label === 'LIST') {
             const currentPage = request.userData.page || 1;
             log.info(`Scraping listing page ${currentPage}: ${request.url}`);
 
-            // FIX 7: Better wait — waits for jobs OR a "no results" message
-            await Promise.race([
-                page.waitForSelector('.srp-jobtuple-wrapper', { timeout: 25000 }),
-                page.waitForSelector('.no-result', { timeout: 25000 }),
-            ]).catch(() => log.warning('Selector timeout — trying anyway'));
+            await page.waitForLoadState('networkidle', { timeout: 30000 })
+                .catch(() => log.warning('networkidle timeout — continuing'));
 
-            const jobLinks = await page.evaluate(() => {
-                const cards = document.querySelectorAll('.srp-jobtuple-wrapper');
-                return Array.from(cards).map(card => {
-                    const titleEl   = card.querySelector('.title');
-                    const companyEl = card.querySelector('.comp-name');
-                    // FIX 8: Naukri uses multiple location selectors — try both
-                    const locationEl = card.querySelector('.locWdth') ||
-                                       card.querySelector('.location');
-                    const expEl    = card.querySelector('.expwdth') ||
-                                     card.querySelector('.experience');
-                    const salaryEl = card.querySelector('.sal-wrap span') ||
-                                     card.querySelector('.salary');
-                    const postedEl = card.querySelector('.job-post-day') ||
-                                     card.querySelector('.postedDate');
-                    // FIX 9: Get tags from listing card directly
-                    const tagEls   = card.querySelectorAll('.tag-li, .tags-gt');
-                    const tags     = Array.from(tagEls).map(t => t.innerText.trim()).join(', ');
-
-                    return {
-                        title:      titleEl   ? titleEl.innerText.trim()   : '',
-                        company:    companyEl ? companyEl.innerText.trim() : '',
-                        location:   locationEl ? locationEl.innerText.trim() : '',
-                        experience: expEl     ? expEl.innerText.trim()     : '',
-                        salary:     salaryEl  ? salaryEl.innerText.trim()  : 'Not disclosed',
-                        postedDate: postedEl  ? postedEl.innerText.trim()  : '',
-                        tags:       tags || '',
-                        jobUrl:     titleEl   ? titleEl.href               : null,
-                        source:     'Naukri',
-                    };
+            // Scroll slowly to simulate human browsing
+            await page.evaluate(async () => {
+                await new Promise(resolve => {
+                    let y = 0;
+                    const timer = setInterval(() => {
+                        window.scrollBy(0, 300);
+                        y += 300;
+                        if (y >= 3000) { clearInterval(timer); resolve(); }
+                    }, 200);
                 });
             });
 
-            log.info(`Found ${jobLinks.length} jobs on page ${currentPage}`);
+            await page.waitForTimeout(2000);
 
-            // FIX 10: Filter for truly fresh jobs (today / 1 day ago only)
+            // Check if Naukri blocked us
+            const pageTitle = await page.title();
+            log.info(`Page title: ${pageTitle}`);
+
+            if (pageTitle.toLowerCase().includes('login') ||
+                pageTitle.toLowerCase().includes('access denied')) {
+                log.error('Naukri is showing login/blocked page — retrying');
+                throw new Error('Blocked by Naukri');
+            }
+
+            // Try multiple selectors
+            const jobCardSelectors = [
+                '.srp-jobtuple-wrapper',
+                '.jobTuple',
+                '[class*="jobTuple"]',
+                '[class*="job-tuple"]',
+                '.cust-job-tuple',
+                '[data-job-id]',
+                'article.jobTupleHeader',
+            ];
+
+            let foundSelector = null;
+            for (const sel of jobCardSelectors) {
+                const count = await page.locator(sel).count();
+                if (count > 0) {
+                    foundSelector = sel;
+                    log.info(`Found ${count} job cards with selector: ${sel}`);
+                    break;
+                }
+            }
+
+            if (!foundSelector) {
+                const bodySnippet = await page.evaluate(() =>
+                    document.body.innerHTML.substring(0, 800)
+                );
+                log.warning(`No job cards found. Page snippet: ${bodySnippet}`);
+                return;
+            }
+
+            const jobLinks = await page.evaluate((selector) => {
+                const cards = document.querySelectorAll(selector);
+                return Array.from(cards).map(card => {
+                    const titleEl    = card.querySelector('.title') ||
+                                       card.querySelector('[class*="title"]') ||
+                                       card.querySelector('a[href*="job-listings"]');
+                    const companyEl  = card.querySelector('.comp-name') ||
+                                       card.querySelector('[class*="comp-name"]') ||
+                                       card.querySelector('[class*="company"]');
+                    const locationEl = card.querySelector('.locWdth') ||
+                                       card.querySelector('[class*="location"]');
+                    const expEl      = card.querySelector('.expwdth') ||
+                                       card.querySelector('[class*="experience"]');
+                    const salaryEl   = card.querySelector('.sal-wrap span') ||
+                                       card.querySelector('[class*="salary"]');
+                    const postedEl   = card.querySelector('.job-post-day') ||
+                                       card.querySelector('[class*="posted"]') ||
+                                       card.querySelector('[class*="date"]');
+                    const tagEls     = card.querySelectorAll('.tag-li, .tags-gt, [class*="tag"]');
+                    const tags       = Array.from(tagEls)
+                        .map(t => t.innerText.trim())
+                        .filter(t => t.length > 1)
+                        .join(', ');
+
+                    return {
+                        title:      titleEl    ? titleEl.innerText.trim()    : '',
+                        company:    companyEl  ? companyEl.innerText.trim()  : '',
+                        location:   locationEl ? locationEl.innerText.trim() : '',
+                        experience: expEl      ? expEl.innerText.trim()      : '',
+                        salary:     salaryEl   ? salaryEl.innerText.trim()   : 'Not disclosed',
+                        postedDate: postedEl   ? postedEl.innerText.trim()   : '',
+                        tags:       tags || '',
+                        jobUrl:     titleEl && titleEl.href ? titleEl.href   : null,
+                        source:     'Naukri',
+                    };
+                });
+            }, foundSelector);
+
+            log.info(`Extracted ${jobLinks.length} jobs from page ${currentPage}`);
+
             const freshJobs = jobLinks.filter(job => {
-                if (!job.postedDate) return true; // include if date unknown
+                if (!job.postedDate) return true;
                 const d = job.postedDate.toLowerCase();
                 if (freshness === '1') {
                     return d.includes('today') || d.includes('just') ||
                            d.includes('hour')  || d.includes('1 day') ||
-                           d.includes('few');
+                           d.includes('few')   || d.includes('minute');
                 }
-                return true; // for freshness > 1 include all
+                return true;
             });
 
-            log.info(`After freshness filter: ${freshJobs.length} jobs qualify`);
+            log.info(`After freshness filter: ${freshJobs.length} qualify`);
 
-            // Queue detail pages (avoid duplicates)
             for (const job of freshJobs.slice(0, maxItems)) {
                 if (job.jobUrl && !seenUrls.has(job.jobUrl)) {
                     seenUrls.add(job.jobUrl);
@@ -121,10 +187,8 @@ const crawler = new PlaywrightCrawler({
                 }
             }
 
-            // FIX 11: Pagination — follow next pages up to maxPages
             if (currentPage < maxPages && jobLinks.length > 0) {
                 const nextUrl = buildSearchUrl(keyword, location, experience, freshness, currentPage + 1);
-                log.info(`Queuing next page: ${nextUrl}`);
                 await crawler.addRequests([{
                     url:      nextUrl,
                     label:    'LIST',
@@ -133,27 +197,21 @@ const crawler = new PlaywrightCrawler({
             }
         }
 
-        // ─── DETAIL PAGE ───────────────────────────────────────────────────────
+        // ── DETAIL PAGE ───────────────────────────────────────────────────────
         if (request.label === 'DETAIL') {
             const baseJob = request.userData.job;
             log.info(`Scraping detail: ${baseJob.title} @ ${baseJob.company}`);
 
-            // FIX 12: Reduced wait from 3000ms to 1500ms — faster + still reliable
+            await page.waitForLoadState('networkidle', { timeout: 20000 })
+                .catch(() => {});
             await page.waitForTimeout(1500);
 
             const details = await page.evaluate(() => {
-
-                // ── Job Description ──
                 const descSelectors = [
-                    '.dang-inner-html',
-                    '.job-desc',
-                    '[class*="job-desc"]',
-                    '[class*="jobDesc"]',
-                    '[class*="description"]',
-                    'section.styles_job-desc-container__txpYf',
-                    '#job_description',
-                    '.details-content',
-                    '[class*="jd-desc"]',   // NEW selector
+                    '.dang-inner-html', '.job-desc',
+                    '[class*="job-desc"]', '[class*="jobDesc"]',
+                    '[class*="description"]', '#job_description',
+                    '.details-content', '[class*="jd-desc"]',
                 ];
                 let jobDescription = 'N/A';
                 for (const sel of descSelectors) {
@@ -164,36 +222,10 @@ const crawler = new PlaywrightCrawler({
                     }
                 }
 
-                // ── Applicants Count ──
-                const applicantSelectors = [
-                    '[class*="applicant"]',
-                    '[class*="Applicant"]',
-                    '.stat-item',
-                    '[class*="application-count"]',
-                    '[class*="apply-count"]',
-                    '[class*="hired"]',
-                    '.loco-details span',
-                    '[class*="applications"]',  // NEW
-                ];
-                let applicants = 'N/A';
-                for (const sel of applicantSelectors) {
-                    const el = document.querySelector(sel);
-                    if (el && el.innerText.trim()) {
-                        applicants = el.innerText.trim();
-                        break;
-                    }
-                }
-
-                // ── Key Skills ──
                 const skillSelectors = [
-                    '.key-skill',
-                    '.chip-btn',
-                    '[class*="keySkill"] a',
-                    '[class*="key-skill"] a',
-                    '.skills-item',
-                    '[class*="tag-li"]',
-                    '[class*="skill-item"]',    // NEW
-                    '[class*="skillsList"] li', // NEW
+                    '.key-skill', '.chip-btn',
+                    '[class*="keySkill"] a', '[class*="key-skill"] a',
+                    '.skills-item', '[class*="tag-li"]', '[class*="skill-item"]',
                 ];
                 let tags = '';
                 for (const sel of skillSelectors) {
@@ -207,23 +239,20 @@ const crawler = new PlaywrightCrawler({
                     }
                 }
 
-                // ── Openings ──
-                const openingsEl =
-                    document.querySelector('[class*="opening"]') ||
-                    document.querySelector('[class*="vacancy"]')  ||
-                    document.querySelector('[class*="Openings"]'); // NEW
-
-                // FIX 13: Extract role category and industry if present
-                const roleEl     = document.querySelector('[class*="role-res"]');
-                const industryEl = document.querySelector('[class*="industry"]');
+                const openingsEl  = document.querySelector('[class*="opening"]') ||
+                                    document.querySelector('[class*="vacancy"]');
+                const roleEl      = document.querySelector('[class*="role-res"]');
+                const industryEl  = document.querySelector('[class*="industry"]');
+                const applicantEl = document.querySelector('[class*="applicant"]') ||
+                                    document.querySelector('[class*="application"]');
 
                 return {
                     jobDescription,
-                    applicants,
                     tags,
-                    openings:  openingsEl  ? openingsEl.innerText.trim()  : 'N/A',
-                    roleCategory: roleEl   ? roleEl.innerText.trim()      : '',
-                    industry:  industryEl  ? industryEl.innerText.trim()  : '',
+                    openings:     openingsEl  ? openingsEl.innerText.trim()  : 'N/A',
+                    roleCategory: roleEl      ? roleEl.innerText.trim()      : '',
+                    industry:     industryEl  ? industryEl.innerText.trim()  : '',
+                    applicants:   applicantEl ? applicantEl.innerText.trim() : 'N/A',
                 };
             });
 
@@ -231,7 +260,6 @@ const crawler = new PlaywrightCrawler({
                 ...baseJob,
                 jobDescription: details.jobDescription,
                 applicants:     details.applicants,
-                // FIX 14: Merge tags from listing + detail page for completeness
                 tags:           baseJob.tags || details.tags,
                 openings:       details.openings,
                 roleCategory:   details.roleCategory,
@@ -250,7 +278,6 @@ const crawler = new PlaywrightCrawler({
     },
 });
 
-// ─── START CRAWL ───────────────────────────────────────────────────────────────
 await crawler.addRequests([{
     url:      searchUrl,
     label:    'LIST',
@@ -258,6 +285,5 @@ await crawler.addRequests([{
 }]);
 
 await crawler.run();
-
 log.info(`Done. Total jobs scraped: ${results.length}`);
 await Actor.exit();
