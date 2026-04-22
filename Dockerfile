@@ -1,7 +1,10 @@
-FROM apify/actor-node-playwright-chrome:20
+FROM apify/actor-node-playwright-chrome:18
 
 COPY package*.json ./
-RUN npm install --include=dev
+RUN npm --quiet set progress=false \
+  && npm install --omit=dev --omit=optional \
+  && echo "NPM install finished"
+
 COPY . ./
 
-CMD npm start
+CMD npm start --silent
