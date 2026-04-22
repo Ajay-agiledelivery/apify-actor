@@ -1,22 +1,11 @@
 {
   "actorOutputSchemaVersion": 1,
-  "title": "Naukri Job Results",
-  "description": "Fresh job listings scraped from Naukri.com",
+  "title": "Naukri Job Scraper Output",
   "properties": {
-    "title":          { "type": "string", "title": "Job Title" },
-    "company":        { "type": "string", "title": "Company" },
-    "location":       { "type": "string", "title": "Location" },
-    "experience":     { "type": "string", "title": "Experience" },
-    "salary":         { "type": "string", "title": "Salary" },
-    "postedDate":     { "type": "string", "title": "Posted Date" },
-    "tags":           { "type": "string", "title": "Skills" },
-    "openings":       { "type": "string", "title": "Openings" },
-    "applicants":     { "type": "string", "title": "Applicants" },
-    "roleCategory":   { "type": "string", "title": "Role Category" },
-    "industry":       { "type": "string", "title": "Industry" },
-    "jobDescription": { "type": "string", "title": "Job Description" },
-    "jobUrl":         { "type": "string", "title": "Apply Link" },
-    "source":         { "type": "string", "title": "Source" },
-    "scrapedAt":      { "type": "string", "title": "Scraped At" }
+    "results": {
+      "type": "string",
+      "title": "Job Results",
+      "template": "{{links.apiDefaultDatasetUrl}}/items"
+    }
   }
 }
