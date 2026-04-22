@@ -2,50 +2,10 @@
   "actorSpecification": 1,
   "name": "naukri-job-scraper",
   "title": "Naukri Advanced Job Scraper — Fresh Jobs, Any Role, Any City",
-  "description": "Scrape fresh job listings from Naukri.com for any role across any Indian city. Filter by last 24 hours, 3 days, or 7 days. Get title, company, salary, experience, skills, description, and direct apply URL.",
+  "description": "Scrape fresh job listings from Naukri.com for any role across any Indian city. Filter by last 24 hours, 3 days, or 7 days.",
   "version": "1.0",
-  "input": "./.actor/input_schema.json",
-  "dockerfile": "./Dockerfile",
-  "readme": "./README.md",
-  "storages": {
-    "dataset": {
-      "actorSpecification": 1,
-      "views": {
-        "overview": {
-          "title": "Naukri Jobs",
-          "transformation": {
-            "fields": [
-              "title",
-              "company",
-              "location",
-              "experience",
-              "salary",
-              "postedDate",
-              "tags",
-              "openings",
-              "applicants",
-              "jobUrl",
-              "scrapedAt"
-            ]
-          },
-          "display": {
-            "component": "table",
-            "properties": {
-              "title":      { "label": "Job Title",    "format": "text" },
-              "company":    { "label": "Company",      "format": "text" },
-              "location":   { "label": "Location",     "format": "text" },
-              "experience": { "label": "Experience",   "format": "text" },
-              "salary":     { "label": "Salary",       "format": "text" },
-              "postedDate": { "label": "Posted",       "format": "text" },
-              "tags":       { "label": "Skills",       "format": "text" },
-              "openings":   { "label": "Openings",     "format": "text" },
-              "applicants": { "label": "Applicants",   "format": "text" },
-              "jobUrl":     { "label": "Apply Link",   "format": "link" },
-              "scrapedAt":  { "label": "Scraped At",   "format": "text" }
-            }
-          }
-        }
-      }
-    }
-  }
+  "input": "./input_schema.json",
+  "output": "./output_schema.json",
+  "dockerfile": "../Dockerfile",
+  "readme": "../README.md"
 }
