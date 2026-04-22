@@ -2,14 +2,14 @@
   "name": "naukri-job-scraper",
   "version": "1.0.0",
   "type": "module",
-  "description": "Naukri Advanced Job Scraper",
+  "description": "Naukri Job Scraper",
   "main": "main.js",
   "scripts": {
     "start": "node main.js"
   },
   "dependencies": {
-    "apify": "^3.2.2",
-    "crawlee": "^3.9.0",
+    "apify": "^3.0.0",
+    "crawlee": "^3.0.0",
     "playwright": "^1.40.0"
   }
 }
